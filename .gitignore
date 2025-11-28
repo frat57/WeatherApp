@@ -1,0 +1,74 @@
+# Visual Studio / .NET
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build outputs
+bin/
+obj/
+artifacts/
+publish/
+
+# Runtime files
+*.dll
+*.exe
+*.pdb
+*.ilk
+*.obj
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+
+# Visual Studio Code
+.vscode/
+
+# Rider
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# User secrets
+secrets.json
+
+# Test results
+TestResults/
+*.testresults
+coverage/
+*.coverage
+*.coveragexml
+
+# Static Web Assets, caches
+staticwebassets.build.json
+*.dswa.cache.json
+
+# Project user and build files
+*.csproj.user
+*.db
+
+# Node stuff (if used by mobile/wwwroot)
+node_modules/
+package-lock.json
+npm-debug.log
+yarn-error.log
+
+# Dotnet tool
+.toolstarget
+
+# Misc
+*.vsix
+*.zip
+*.tar.gz
+
+# Local env files
+.env
+*.local

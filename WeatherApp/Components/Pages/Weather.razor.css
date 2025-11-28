@@ -1,0 +1,394 @@
+.weather-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.weather-title {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #2c3e50;
+    font-size: 2.5rem;
+}
+
+.location-selector {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    align-items: flex-start;
+}
+
+.location-input-group {
+    flex: 1;
+    position: relative;
+}
+
+.location-search {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 1rem;
+}
+
+.search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    margin-top: 0.5rem;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.search-result-item {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s;
+}
+
+.search-result-item:hover {
+    background-color: #f5f5f5;
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.search-result-item.no-results {
+    color: #999;
+    cursor: default;
+}
+
+.search-result-item strong {
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.search-result-item small {
+    color: #666;
+}
+
+.location-btn {
+    padding: 0.75rem 1.5rem;
+    white-space: nowrap;
+}
+
+.current-location-info {
+    text-align: center;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    margin-bottom: 1.5rem;
+    color: #2c3e50;
+}
+
+.loading-container {
+    text-align: center;
+    padding: 3rem;
+}
+
+.spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.error-container {
+    text-align: center;
+    padding: 3rem;
+    background-color: #fee;
+    border-radius: 10px;
+    color: #c33;
+}
+
+/* Bugünün Hava Durumu Kartı */
+.today-weather-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 20px;
+    padding: 2.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.today-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.today-header h2 {
+    margin: 0;
+    font-size: 2rem;
+}
+
+.date-text {
+    font-size: 1rem;
+    opacity: 0.9;
+}
+
+.today-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2rem;
+}
+
+.today-main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.weather-icon-large {
+    font-size: 5rem;
+    line-height: 1;
+}
+
+.temperature-large {
+    font-size: 4rem;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.weather-description {
+    font-size: 1.2rem;
+    opacity: 0.95;
+}
+
+.today-details {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 1rem;
+    background-color: rgba(255,255,255,0.2);
+    border-radius: 10px;
+}
+
+.detail-label {
+    opacity: 0.9;
+}
+
+.detail-value {
+    font-weight: bold;
+}
+
+/* Haftalık Tahmin */
+.weekly-forecast {
+    margin-bottom: 2rem;
+}
+
+.weekly-forecast h3 {
+    margin-bottom: 1.5rem;
+    color: #2c3e50;
+    font-size: 1.5rem;
+}
+
+.days-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+}
+
+.day-card {
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 15px;
+    padding: 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.day-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    border-color: #667eea;
+}
+
+.day-card.today {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: #667eea;
+}
+
+.day-card.selected {
+    border-color: #667eea;
+    border-width: 3px;
+    box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+}
+
+.day-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 1rem;
+}
+
+.day-name {
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+.day-date {
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+.day-weather {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.day-icon {
+    font-size: 2.5rem;
+}
+
+.day-temps {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.temp-max {
+    font-weight: bold;
+}
+
+.temp-min {
+    opacity: 0.7;
+}
+
+.day-description {
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+/* Saatlik Detaylar */
+.hourly-forecast {
+    margin-top: 2rem;
+}
+
+.hourly-forecast h3 {
+    margin-bottom: 1.5rem;
+    color: #2c3e50;
+    font-size: 1.5rem;
+}
+
+.hours-scroll {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    padding: 1rem 0;
+    scrollbar-width: thin;
+}
+
+.hours-scroll::-webkit-scrollbar {
+    height: 8px;
+}
+
+.hours-scroll::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.hours-scroll::-webkit-scrollbar-thumb {
+    background: #667eea;
+    border-radius: 10px;
+}
+
+.hour-card {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 1rem;
+    min-width: 120px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.hour-time {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    color: #2c3e50;
+}
+
+.hour-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.hour-temp {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #667eea;
+    margin-bottom: 0.5rem;
+}
+
+.hour-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.hour-detail-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .weather-container {
+        padding: 1rem;
+    }
+
+    .location-selector {
+        flex-direction: column;
+    }
+
+    .today-content {
+        flex-direction: column;
+    }
+
+    .days-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    }
+
+    .temperature-large {
+        font-size: 3rem;
+    }
+
+    .weather-icon-large {
+        font-size: 4rem;
+    }
+}
+

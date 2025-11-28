@@ -1,0 +1,470 @@
+﻿@page "/weather"
+@attribute [StreamRendering]
+@inject WeatherService WeatherService
+@inject GeolocationService GeolocationService
+@rendermode InteractiveServer
+
+<PageTitle>Hava Durumu</PageTitle>
+
+<div class="weather-container">
+    <div class="weather-header">
+        <h1 class="weather-title">Hava Durumu</h1>
+        
+        <!-- Konum ve Şehir Seçimi -->
+        <div class="location-selector">
+            <div class="location-input-group">
+                <input type="text" 
+                       class="form-control location-search" 
+                       placeholder="Şehir ara..." 
+                       @bind="searchQuery" 
+                       @bind:event="oninput"
+                       @onkeyup="HandleSearchKeyUp" />
+                @if (isSearching)
+                {
+                    <div class="search-results">
+                        @if (searchResults.Any())
+                        {
+                            @foreach (var location in searchResults)
+                            {
+                                <div class="search-result-item" @onclick="() => SelectLocation(location)">
+                                    <strong>@location.Name</strong>
+                                    <small>@location.Admin1, @location.Country</small>
+                                </div>
+                            }
+                        }
+                        else if (!string.IsNullOrWhiteSpace(searchQuery))
+                        {
+                            <div class="search-result-item no-results">
+                                Sonuç bulunamadı
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+            <button class="btn btn-outline-primary location-btn" @onclick="UseCurrentLocation" disabled="@isGettingLocation">
+                @if (isGettingLocation)
+                {
+                    <span>Konum alınıyor...</span>
+                }
+                else
+                {
+                    <span>📍 Mevcut Konum</span>
+                }
+            </button>
+        </div>
+        
+        @if (currentLocation != null)
+        {
+            <div class="current-location-info">
+                📍 <strong>@currentLocation.Name</strong>
+                @if (!string.IsNullOrEmpty(currentLocation.Admin1))
+                {
+                    <span>, @currentLocation.Admin1</span>
+                }
+                <span>, @currentLocation.Country</span>
+            </div>
+        }
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-container">
+            <div class="spinner"></div>
+            <p>Hava durumu verileri yükleniyor...</p>
+        </div>
+    }
+    else if (dailyWeathers == null || dailyWeathers.Count == 0)
+    {
+        <div class="error-container">
+            <p>@errorMessage</p>
+            <button class="btn btn-primary" @onclick="async () => await LoadWeatherData()">Tekrar Dene</button>
+        </div>
+    }
+    else
+    {
+        <!-- Seçili Günün Hava Durumu - Ön Planda -->
+        @if (selectedDay != null)
+        {
+            <div class="today-weather-card">
+                <div class="today-header">
+                    <h2>@(selectedDay.Date.Date == DateTime.Today ? "Bugün" : selectedDay.Date.ToString("dddd", new System.Globalization.CultureInfo("tr-TR")))</h2>
+                    <span class="date-text">@selectedDay.Date.ToString("dd MMMM yyyy, dddd", new System.Globalization.CultureInfo("tr-TR"))</span>
+                </div>
+                <div class="today-content">
+                    <div class="today-main">
+                        <div class="weather-icon-large">@selectedDay.WeatherIcon</div>
+                        <div class="temperature-large">@Math.Round(selectedDay.MaxTemperature)°C</div>
+                        <div class="weather-description">@selectedDay.WeatherDescription</div>
+                    </div>
+                    <div class="today-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Min:</span>
+                            <span class="detail-value">@Math.Round(selectedDay.MinTemperature)°C</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Yağış:</span>
+                            <span class="detail-value">@Math.Round(selectedDay.Precipitation, 1) mm</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Rüzgar:</span>
+                            <span class="detail-value">@Math.Round(selectedDay.MaxWindSpeed) km/h</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Haftalık Hava Durumu -->
+        <div class="weekly-forecast">
+            <h3>7 Günlük Tahmin</h3>
+            <div class="days-grid">
+                @foreach (var day in dailyWeathers)
+                {
+                    var isToday = day.Date.Date == DateTime.Today;
+                    var isSelected = selectedDay?.Date == day.Date;
+                    <div class="day-card @(isToday ? "today" : "") @(isSelected ? "selected" : "")" 
+                         @onclick="() => SelectDay(day)">
+                        <div class="day-header">
+                            <span class="day-name">@(isToday ? "Bugün" : day.Date.ToString("dddd", new System.Globalization.CultureInfo("tr-TR")))</span>
+                            <span class="day-date">@day.Date.ToString("dd MMM")</span>
+                        </div>
+                        <div class="day-weather">
+                            <span class="day-icon">@day.WeatherIcon</span>
+                            <div class="day-temps">
+                                <span class="temp-max">@Math.Round(day.MaxTemperature)°</span>
+                                <span class="temp-min">@Math.Round(day.MinTemperature)°</span>
+                            </div>
+                        </div>
+                        <div class="day-description">@day.WeatherDescription</div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Seçilen Günün Saatlik Detayları -->
+        @if (selectedDay is not null && selectedDay.HourlyData.Any())
+        {
+            <div class="hourly-forecast">
+                <h3>@selectedDay.Date.ToString("dd MMMM yyyy, dddd", new System.Globalization.CultureInfo("tr-TR")) - Saatlik Detaylar</h3>
+                <div class="hours-scroll">
+                    @foreach (var hour in selectedDay.HourlyData)
+                    {
+                        <div class="hour-card">
+                            <div class="hour-time">@hour.Time.ToString("HH:mm")</div>
+                            <div class="hour-icon">@hour.WeatherIcon</div>
+                            <div class="hour-temp">@Math.Round(hour.Temperature)°C</div>
+                            <div class="hour-details">
+                                <div class="hour-detail-item">
+                                    <span>💧</span>
+                                    <span>@Math.Round(hour.Humidity)%</span>
+                                </div>
+                                @if (hour.Precipitation > 0)
+                                {
+                                    <div class="hour-detail-item">
+                                        <span>🌧️</span>
+                                        <span>@Math.Round(hour.Precipitation, 1)mm</span>
+                                    </div>
+                                }
+                                <div class="hour-detail-item">
+                                    <span>💨</span>
+                                    <span>@Math.Round(hour.WindSpeed) km/h</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private List<DailyWeather>? dailyWeathers;
+    private DailyWeather? todayWeather;
+    private DailyWeather? selectedDay;
+    private bool isLoading = true;
+    
+    // Location search properties
+    private string searchQuery = string.Empty;
+    private bool isSearching = false;
+    private List<LocationResult> searchResults = new();
+    private LocationResult? currentLocation;
+    private bool isGettingLocation = false;
+    private string errorMessage = "Hava durumu verileri alınamadı. Lütfen daha sonra tekrar deneyin.";
+    
+    // Default location (Istanbul)
+    private double defaultLatitude = 41.0082;
+    private double defaultLongitude = 28.9784;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Önce kullanıcının konumunu almaya çalış
+        try
+        {
+            var location = await GeolocationService.GetCurrentLocationAsync();
+            if (location.HasValue)
+            {
+                // Reverse geocoding ile konum bilgisini al
+                var locationInfo = await WeatherService.GetLocationFromCoordinatesAsync(
+                    location.Value.Latitude, 
+                    location.Value.Longitude);
+                
+                if (locationInfo != null)
+                {
+                    currentLocation = locationInfo;
+                    await LoadWeatherData(location.Value.Latitude, location.Value.Longitude);
+                    return;
+                }
+                else
+                {
+                    // Konum bilgisi alınamadı ama koordinatlar var, yine de hava durumunu göster
+                    currentLocation = new LocationResult
+                    {
+                        Name = "Mevcut Konum",
+                        Latitude = location.Value.Latitude,
+                        Longitude = location.Value.Longitude,
+                        Country = "Türkiye"
+                    };
+                    await LoadWeatherData(location.Value.Latitude, location.Value.Longitude);
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Konum alınamadı, varsayılan konum kullanılacak: {ex.Message}");
+        }
+        
+        // Konum alınamazsa veya izin verilmezse İstanbul'u göster
+        var istanbulLocation = await WeatherService.GetLocationFromCoordinatesAsync(defaultLatitude, defaultLongitude);
+        if (istanbulLocation != null)
+        {
+            currentLocation = istanbulLocation;
+        }
+        else
+        {
+            currentLocation = new LocationResult
+            {
+                Name = "İstanbul",
+                Latitude = defaultLatitude,
+                Longitude = defaultLongitude,
+                Admin1 = "İstanbul",
+                Country = "Türkiye"
+            };
+        }
+        
+        await LoadWeatherData(defaultLatitude, defaultLongitude);
+    }
+
+    private async Task LoadWeatherData(double? latitude = null, double? longitude = null)
+    {
+        isLoading = true;
+        errorMessage = "Hava durumu verileri alınamadı. Lütfen daha sonra tekrar deneyin.";
+        try
+        {
+            var lat = latitude ?? defaultLatitude;
+            var lon = longitude ?? defaultLongitude;
+            
+            var response = await WeatherService.GetWeatherForecastAsync(lat, lon);
+            
+            if (response != null && response.Daily?.Time != null && response.Daily.Time.Count > 0)
+            {
+                dailyWeathers = new List<DailyWeather>();
+                
+                // Günlük verileri işle
+                for (int i = 0; i < response.Daily.Time.Count && i < 7; i++)
+                {
+                    // Parse date/time coming from API using DateTimeOffset to preserve timezone
+                    // then convert to local DateTime to make day-grouping and comparisons reliable
+                    DateTime date;
+                    if (!DateTimeOffset.TryParse(response.Daily.Time[i], out var dateOffset))
+                    {
+                        // Fallback to DateTime.Parse in case it's in an unexpected format
+                        date = DateTime.Parse(response.Daily.Time[i]);
+                    }
+                    else
+                    {
+                        date = dateOffset.ToLocalTime().DateTime;
+                    }
+                    var daily = new DailyWeather
+                    {
+                        Date = date,
+                        MaxTemperature = response.Daily.Temperature_2m_Max[i],
+                        MinTemperature = response.Daily.Temperature_2m_Min[i],
+                        WeatherCode = response.Daily.Weathercode[i],
+                        Precipitation = response.Daily.Precipitation_Sum[i],
+                        MaxWindSpeed = response.Daily.Windspeed_10m_Max[i]
+                    };
+
+                    // Saatlik verileri işle (seçilen gün için)
+                    var dayStart = date.Date;
+                    var dayEnd = dayStart.AddDays(1);
+                    
+                    if (response.Hourly?.Time != null)
+                    {
+                        for (int j = 0; j < response.Hourly.Time.Count; j++)
+                        {
+                            // Use DateTimeOffset so we account for any timezone in the API response
+                            DateTime hourTime;
+                            if (!DateTimeOffset.TryParse(response.Hourly.Time[j], out var hourOffset))
+                            {
+                                hourTime = DateTime.Parse(response.Hourly.Time[j]);
+                            }
+                            else
+                            {
+                                hourTime = hourOffset.ToLocalTime().DateTime;
+                            }
+                            if (hourTime >= dayStart && hourTime < dayEnd)
+                            {
+                                daily.HourlyData.Add(new HourlyWeather
+                                {
+                                    Time = hourTime,
+                                    Temperature = response.Hourly.Temperature_2m[j],
+                                    Humidity = response.Hourly.Relativehumidity_2m[j],
+                                    WeatherCode = response.Hourly.Weathercode[j],
+                                    Precipitation = response.Hourly.Precipitation[j],
+                                    WindSpeed = response.Hourly.Windspeed_10m[j]
+                                });
+                            }
+                        }
+                    }
+
+                    dailyWeathers.Add(daily);
+                }
+
+                // Bugünü bul
+                todayWeather = dailyWeathers.FirstOrDefault(d => d.Date.Date == DateTime.Today);
+                if (todayWeather is null && dailyWeathers.Any())
+                {
+                    todayWeather = dailyWeathers[0];
+                }
+
+                // İlk günü varsayılan olarak seç
+                if (dailyWeathers.Any())
+                {
+                    selectedDay = todayWeather ?? dailyWeathers[0];
+                }
+            }
+            else
+            {
+                errorMessage = "Hava durumu verileri alınamadı. API'den geçerli veri dönmedi. Lütfen daha sonra tekrar deneyin.";
+                dailyWeathers = null;
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            errorMessage = $"Ağ hatası: İnternet bağlantınızı kontrol edin. ({ex.Message})";
+            Console.WriteLine($"Error loading weather data: {ex.Message}");
+            dailyWeathers = null;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Hata oluştu: {ex.Message}";
+            Console.WriteLine($"Error loading weather data: {ex.Message}");
+            dailyWeathers = null;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void SelectDay(DailyWeather day)
+    {
+        selectedDay = day;
+    }
+
+    private async Task HandleSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            isSearching = false;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(searchQuery))
+        {
+            isSearching = false;
+            searchResults.Clear();
+            return;
+        }
+
+        if (searchQuery.Length >= 2)
+        {
+            isSearching = true;
+            await SearchLocations();
+        }
+    }
+
+    private async Task SearchLocations()
+    {
+        if (string.IsNullOrWhiteSpace(searchQuery) || searchQuery.Length < 2)
+        {
+            searchResults.Clear();
+            return;
+        }
+
+        try
+        {
+            searchResults = await WeatherService.SearchLocationsAsync(searchQuery);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error searching locations: {ex.Message}");
+            searchResults.Clear();
+        }
+    }
+
+    private async Task SelectLocation(LocationResult location)
+    {
+        currentLocation = location;
+        searchQuery = string.Empty;
+        isSearching = false;
+        searchResults.Clear();
+        
+        await LoadWeatherData(location.Latitude, location.Longitude);
+    }
+
+    private async Task UseCurrentLocation()
+    {
+        isGettingLocation = true;
+        try
+        {
+            var location = await GeolocationService.GetCurrentLocationAsync();
+            if (location.HasValue)
+            {
+                // Reverse geocoding ile konum bilgisini al
+                var locationInfo = await WeatherService.GetLocationFromCoordinatesAsync(
+                    location.Value.Latitude, 
+                    location.Value.Longitude);
+                
+                if (locationInfo != null)
+                {
+                    currentLocation = locationInfo;
+                }
+                else
+                {
+                    // Eğer reverse geocoding başarısız olursa, genel bir isim kullan
+                    currentLocation = new LocationResult
+                    {
+                        Name = "Mevcut Konum",
+                        Latitude = location.Value.Latitude,
+                        Longitude = location.Value.Longitude,
+                        Country = "Türkiye"
+                    };
+                }
+                
+                await LoadWeatherData(location.Value.Latitude, location.Value.Longitude);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error getting current location: {ex.Message}");
+            errorMessage = $"Konum alınamadı: {ex.Message}";
+        }
+        finally
+        {
+            isGettingLocation = false;
+        }
+    }
+}
